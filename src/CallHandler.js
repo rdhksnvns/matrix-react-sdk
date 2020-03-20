@@ -435,11 +435,18 @@ async function _startCallApp(roomId, type) {
     const confId = room.roomId.replace(/[^A-Za-z0-9]/g, '') + widgetSessionId;
     const jitsiDomain = SdkConfig.get()['jitsi']['preferredDomain'];
 
-    const widgetUrl = WidgetUtils.getLocalJitsiWrapperUrl();
+    let widgetUrl = WidgetUtils.getLocalJitsiWrapperUrl();
+
+    // TODO: Remove URL hacks when the mobile clients eventually support v2 widgets
+    const parsedUrl = new URL(widgetUrl);
+    parsedUrl.search = ''; // set to empty string to make the URL class use searchParams instead
+    parsedUrl.searchParams.set('confId', confId);
+    widgetUrl = parsedUrl.toString();
 
     const widgetData = {
         widgetSessionId, // TODO: Remove this eventually
         conferenceId: confId,
+        confId: confId, // TODO: Remove this when the mobile clients eventually support v2 widgets
         isAudioOnly: type === 'voice',
         domain: jitsiDomain,
     };
