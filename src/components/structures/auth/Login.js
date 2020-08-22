@@ -84,11 +84,13 @@ export default createReactClass({
         onServerConfigChange: PropTypes.func.isRequired,
 
         serverConfig: PropTypes.instanceOf(ValidatedServerConfig).isRequired,
+        isSyncing: PropTypes.bool,
     },
 
     getInitialState: function() {
         return {
             busy: false,
+            busyLoggingIn: null,
             errorText: null,
             loginIncorrect: false,
             canTryLogin: true, // can we attempt to log in or are there validation errors?
@@ -113,7 +115,8 @@ export default createReactClass({
         };
     },
 
-    componentWillMount: function() {
+    // TODO: [REACT-WARNING] Move this to constructor
+    UNSAFE_componentWillMount: function() {
         this._unmounted = false;
 
         // map from login step type to a function which will render a control
@@ -133,7 +136,8 @@ export default createReactClass({
         this._unmounted = true;
     },
 
-    componentWillReceiveProps(newProps) {
+    // TODO: [REACT-WARNING] Replace with appropriate lifecycle event
+    UNSAFE_componentWillReceiveProps(newProps) {
         if (newProps.serverConfig.hsUrl === this.props.serverConfig.hsUrl &&
             newProps.serverConfig.isUrl === this.props.serverConfig.isUrl) return;
 
@@ -167,6 +171,7 @@ export default createReactClass({
                 const componentState = AutoDiscoveryUtils.authComponentStateForError(e);
                 this.setState({
                     busy: false,
+                    busyLoggingIn: false,
                     ...componentState,
                 });
                 aliveAgain = !componentState.serverErrorIsFatal;
@@ -180,6 +185,7 @@ export default createReactClass({
 
         this.setState({
             busy: true,
+            busyLoggingIn: true,
             errorText: null,
             loginIncorrect: false,
         });
@@ -248,6 +254,7 @@ export default createReactClass({
 
             this.setState({
                 busy: false,
+                busyLoggingIn: false,
                 errorText: errorText,
                 // 401 would be the sensible status code for 'incorrect password'
                 // but the login API gives a 403 https://matrix.org/jira/browse/SYN-744
@@ -278,7 +285,7 @@ export default createReactClass({
                 // We'd like to rely on new props coming in via `onServerConfigChange`
                 // so that we know the servers have definitely updated before clearing
                 // the busy state. In the case of a full MXID that resolves to the same
-                // HS as Riot's default HS though, there may not be any server change.
+                // HS as Element's default HS though, there may not be any server change.
                 // To avoid this trap, we clear busy here. For cases where the server
                 // actually has changed, `_initLoginLogic` will be called and manages
                 // busy state for its own liveness check.
@@ -348,7 +355,8 @@ export default createReactClass({
             ev.preventDefault();
             ev.stopPropagation();
             const ssoKind = step === 'm.login.sso' ? 'sso' : 'cas';
-            PlatformPeg.get().startSingleSignOn(this._loginLogic.createTemporaryClient(), ssoKind);
+            PlatformPeg.get().startSingleSignOn(this._loginLogic.createTemporaryClient(), ssoKind,
+                this.props.fragmentAfterLogin);
         } else {
             // Don't intercept - just go through to the register page
             this.onRegisterClick(ev);
@@ -592,6 +600,7 @@ export default createReactClass({
                loginIncorrect={this.state.loginIncorrect}
                serverConfig={this.props.serverConfig}
                disableSubmit={this.isBusy()}
+               busy={this.props.isSyncing || this.state.busyLoggingIn}
             />
         );
     },
@@ -606,8 +615,8 @@ export default createReactClass({
         }
         // XXX: This link does *not* have a target="_blank" because single sign-on relies on
         // redirecting the user back to a URI once they're logged in. On the web, this means
-        // we use the same window and redirect back to riot. On electron, this actually
-        // opens the SSO page in the electron app itself due to
+        // we use the same window and redirect back to Element. On Electron, this actually
+        // opens the SSO page in the Electron app itself due to
         // https://github.com/electron/electron/issues/8841 and so happens to work.
         // If this bug gets fixed, it will break SSO since it will open the SSO page in the
         // user's browser, let them log into their SSO provider, then redirect their browser
@@ -620,16 +629,20 @@ export default createReactClass({
                 <SSOButton
                     className="mx_Login_sso_link mx_Login_submit"
                     matrixClient={this._loginLogic.createTemporaryClient()}
-                    loginType={loginType} />
+                    loginType={loginType}
+                    fragmentAfterLogin={this.props.fragmentAfterLogin}
+                />
             </div>
         );
     },
 
     render: function() {
         const Loader = sdk.getComponent("elements.Spinner");
+        const InlineSpinner = sdk.getComponent("elements.InlineSpinner");
         const AuthHeader = sdk.getComponent("auth.AuthHeader");
         const AuthBody = sdk.getComponent("auth.AuthBody");
-        const loader = this.isBusy() ? <div className="mx_Login_loader"><Loader /></div> : null;
+        const loader = this.isBusy() && !this.state.busyLoggingIn ?
+            <div className="mx_Login_loader"><Loader /></div> : null;
 
         const errorText = this.state.errorText;
 
@@ -656,9 +669,28 @@ export default createReactClass({
             );
         }
 
+        let footer;
+        if (this.props.isSyncing || this.state.busyLoggingIn) {
+            footer = <div className="mx_AuthBody_paddedFooter">
+                <div className="mx_AuthBody_paddedFooter_title">
+                    <InlineSpinner w={20} h={20} />
+                    { this.props.isSyncing ? _t("Syncing...") : _t("Signing In...") }
+                </div>
+                { this.props.isSyncing && <div className="mx_AuthBody_paddedFooter_subtitle">
+                    {_t("If you've joined lots of rooms, this might take a while")}
+                </div> }
+            </div>;
+        } else {
+            footer = (
+                <a className="mx_AuthBody_changeFlow" onClick={this.onTryRegisterClick} href="#">
+                    { _t('Create account') }
+                </a>
+            );
+        }
+
         return (
             <AuthPage>
-                <AuthHeader />
+                <AuthHeader disableLanguageSelector={this.props.isSyncing || this.state.busyLoggingIn} />
                 <AuthBody>
                     <h2>
                         {_t('Sign in')}
@@ -668,9 +700,7 @@ export default createReactClass({
                     { serverDeadSection }
                     { this.renderServerComponent() }
                     { this.renderLoginComponentForStep() }
-                    <a className="mx_AuthBody_changeFlow" onClick={this.onTryRegisterClick} href="#">
-                        { _t('Create account') }
-                    </a>
+                    { footer }
                 </AuthBody>
             </AuthPage>
         );

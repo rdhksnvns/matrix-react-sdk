@@ -42,7 +42,8 @@ export default createReactClass({
         };
     },
 
-    componentWillMount: function() {
+    // TODO: [REACT-WARNING] Replace component with real class, use constructor for refs
+    UNSAFE_componentWillMount: function() {
         this._unmounted = false;
 
         this._passphrase1 = createRef();
@@ -83,7 +84,7 @@ export default createReactClass({
             const blob = new Blob([f], {
                 type: 'text/plain;charset=us-ascii',
             });
-            FileSaver.saveAs(blob, 'riot-keys.txt');
+            FileSaver.saveAs(blob, 'element-keys.txt');
             this.props.onFinished(true);
         }).catch((e) => {
             console.error("Error exporting e2e keys:", e);

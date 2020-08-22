@@ -21,7 +21,8 @@ import * as sdk from "../../../index";
 import { _t } from "../../../languageHandler";
 import Modal from "../../../Modal";
 import {MatrixClientPeg} from "../../../MatrixClientPeg";
-import SettingsStore, {SettingLevel} from "../../../settings/SettingsStore";
+import SettingsStore from "../../../settings/SettingsStore";
+import {SettingLevel} from "../../../settings/SettingLevel";
 
 export default class RoomRecoveryReminder extends React.PureComponent {
     static propTypes = {
@@ -44,7 +45,7 @@ export default class RoomRecoveryReminder extends React.PureComponent {
         };
     }
 
-    componentWillMount() {
+    componentDidMount() {
         this._loadBackupStatus();
     }
 
@@ -61,7 +62,6 @@ export default class RoomRecoveryReminder extends React.PureComponent {
                 loading: false,
                 error: e,
             });
-            return;
         }
     }
 
@@ -151,7 +151,7 @@ export default class RoomRecoveryReminder extends React.PureComponent {
                     )}</p>
                 </div>
                 <div className="mx_RoomRecoveryReminder_buttons">
-                    <AccessibleButton className="mx_RoomRecoveryReminder_button"
+                    <AccessibleButton kind="primary"
                         onClick={this.onSetupClick}>
                         {setupCaption}
                     </AccessibleButton>

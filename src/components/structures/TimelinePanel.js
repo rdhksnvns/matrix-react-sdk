@@ -29,7 +29,7 @@ import {MatrixClientPeg} from "../../MatrixClientPeg";
 import * as ObjectUtils from "../../ObjectUtils";
 import UserActivity from "../../UserActivity";
 import Modal from "../../Modal";
-import dis from "../../dispatcher";
+import dis from "../../dispatcher/dispatcher";
 import * as sdk from "../../index";
 import { Key } from '../../Keyboard';
 import Timer from '../../utils/Timer';
@@ -112,6 +112,9 @@ const TimelinePanel = createReactClass({
 
         // whether to show reactions for an event
         showReactions: PropTypes.bool,
+
+        // whether to use the irc layout
+        useIRCLayout: PropTypes.bool,
     },
 
     statics: {
@@ -202,7 +205,8 @@ const TimelinePanel = createReactClass({
         };
     },
 
-    componentWillMount: function() {
+    // TODO: [REACT-WARNING] Replace component with real class, use constructor for refs
+    UNSAFE_componentWillMount: function() {
         debuglog("TimelinePanel: mounting");
 
         this.lastRRSentEventId = undefined;
@@ -234,7 +238,8 @@ const TimelinePanel = createReactClass({
         this._initTimeline(this.props);
     },
 
-    componentWillReceiveProps: function(newProps) {
+    // TODO: [REACT-WARNING] Replace with appropriate lifecycle event
+    UNSAFE_componentWillReceiveProps: function(newProps) {
         if (newProps.timelineSet !== this.props.timelineSet) {
             // throw new Error("changing timelineSet on a TimelinePanel is not supported");
 
@@ -793,6 +798,9 @@ const TimelinePanel = createReactClass({
                 readMarkerVisible: false,
             });
         }
+
+        // Send the updated read marker (along with read receipt) to the server
+        this.sendReadReceipt();
     },
 
 
@@ -1178,7 +1186,7 @@ const TimelinePanel = createReactClass({
             if (!timeline) {
                 // Somehow, it seems to be possible for live events to not have
                 // a timeline, even though that should not happen. :(
-                // https://github.com/vector-im/riot-web/issues/12120
+                // https://github.com/vector-im/element-web/issues/12120
                 console.warn(
                     `Event ${events[i].getId()} in room ${room.roomId} is live, ` +
                     `but it does not have a timeline`,
@@ -1445,6 +1453,7 @@ const TimelinePanel = createReactClass({
                 getRelationsForEvent={this.getRelationsForEvent}
                 editState={this.state.editState}
                 showReactions={this.props.showReactions}
+                useIRCLayout={this.props.useIRCLayout}
             />
         );
     },

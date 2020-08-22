@@ -43,7 +43,8 @@ export default createReactClass({
         };
     },
 
-    componentWillMount: function() {
+    // TODO: [REACT-WARNING] Replace component with real class, use constructor for refs
+    UNSAFE_componentWillMount: function() {
         this.unmounted = false;
         MatrixClientPeg.get().getUrlPreview(this.props.link, this.props.mxEvent.getTs()).then((res)=>{
             if (this.unmounted) {
@@ -133,7 +134,7 @@ export default createReactClass({
 
         const AccessibleButton = sdk.getComponent('elements.AccessibleButton');
         return (
-            <div className="mx_LinkPreviewWidget" >
+            <div className="mx_LinkPreviewWidget">
                 { img }
                 <div className="mx_LinkPreviewWidget_caption">
                     <div className="mx_LinkPreviewWidget_title"><a href={this.props.link} target="_blank" rel="noreferrer noopener">{ p["og:title"] }</a></div>

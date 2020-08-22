@@ -38,10 +38,10 @@ export default createReactClass({
         };
     },
 
-    componentWillMount: function() {
+    componentDidMount: function() {
         this._unmounted = false;
         // XXX: temporary logging to try to diagnose
-        // https://github.com/vector-im/riot-web/issues/3148
+        // https://github.com/vector-im/element-web/issues/3148
         console.log('Starting load of AsyncWrapper for modal');
         this.props.prom.then((result) => {
             if (this._unmounted) {

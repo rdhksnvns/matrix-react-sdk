@@ -17,17 +17,15 @@ limitations under the License.
 
 import React from 'react';
 import {_t} from "../../../../../languageHandler";
-import {SettingLevel} from "../../../../../settings/SettingsStore";
 import LabelledToggleSwitch from "../../../elements/LabelledToggleSwitch";
 import SettingsStore from "../../../../../settings/SettingsStore";
 import Field from "../../../elements/Field";
 import * as sdk from "../../../../..";
 import PlatformPeg from "../../../../../PlatformPeg";
+import {SettingLevel} from "../../../../../settings/SettingLevel";
 
 export default class PreferencesUserSettingsTab extends React.Component {
     static ROOM_LIST_SETTINGS = [
-        'RoomList.orderAlphabetically',
-        'RoomList.orderByImportance',
         'breadcrumbs',
     ];
 
@@ -81,7 +79,7 @@ export default class PreferencesUserSettingsTab extends React.Component {
         };
     }
 
-    async componentWillMount(): void {
+    async componentDidMount(): void {
         const platform = PlatformPeg.get();
 
         const autoLaunchSupported = await platform.supportsAutoLaunch();
@@ -195,19 +193,16 @@ export default class PreferencesUserSettingsTab extends React.Component {
                     {autoHideMenuOption}
                     {autoLaunchOption}
                     <Field
-                        id={"autocompleteDelay"}
                         label={_t('Autocomplete delay (ms)')}
                         type='number'
                         value={this.state.autocompleteDelay}
                         onChange={this._onAutocompleteDelayChange} />
                     <Field
-                        id={"readMarkerInViewThresholdMs"}
                         label={_t('Read Marker lifetime (ms)')}
                         type='number'
                         value={this.state.readMarkerInViewThresholdMs}
                         onChange={this._onReadMarkerInViewThresholdMs} />
                     <Field
-                        id={"readMarkerOutOfViewThresholdMs"}
                         label={_t('Read Marker off-screen lifetime (ms)')}
                         type='number'
                         value={this.state.readMarkerOutOfViewThresholdMs}
